@@ -1,5 +1,10 @@
 ##  day1   
 
+https://docs.docker.com/engine/reference/run/
+
+https://staphb.org/docker-builds/run_containers/
+
+
 ```
 docker run staphb/ncbi-datasets:latest datasets download genome accession GCF_000240185.1
 ```
