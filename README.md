@@ -32,3 +32,18 @@ login to the docker container using:
 ```
 docker run -it neranjan007/fastqc:0.11.9
 ``` 
+
+Remove images   
+```
+docker image rm image:tag
+OR 
+docker rmi image:tag
+```  
+
+Docker Hub  
+```
+docker build --tag neranjan007/jq:1.6 jq/1.6/
+Docker login 
+docker push neranjan007/jq:1.6
+```  
+
