@@ -20,8 +20,7 @@ RUN apt-get update --fix-missing \
     ca-certificates \
     curl \
     wget \
-    make \
-    g++ \
+    libgomp1 \
     hmmer \
     pigz \
     procps && \
