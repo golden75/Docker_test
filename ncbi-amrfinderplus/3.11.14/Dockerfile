@@ -2,6 +2,7 @@
 FROM ubuntu:jammy as app
 
 ARG AMRFINDER_VER="3.11.14"
+ARG AMRFINDER_DB_VER="2023-04-17.1"
 ARG BLAST_VER="2.14.0"
 
 # File Author / Maintainer
@@ -15,14 +16,12 @@ LABEL license="https://github.com/ncbi/amr/blob/master/LICENSE"
 LABEL maintainer="Neranjan Perera"
 LABEL maintainer.email="neranjan007@gmail.com"
 
-RUN apt-get update --fix-missing \
-    && apt-get install -y --no-install-recommends \
+RUN apt-get update && apt-get install -y --no-install-recommends \
     ca-certificates \
     curl \
     wget \
     libgomp1 \
     hmmer \
-    pigz \
     procps && \
     apt-get autoclean && \
     rm -rf /var/lib/apt/lists/*
@@ -36,12 +35,20 @@ RUN mkdir amrfinder && cd /amrfinder && \
 
 # install ncbi-blast linux binaries
 RUN wget https://ftp.ncbi.nlm.nih.gov/blast/executables/blast+/${BLAST_VER}/ncbi-blast-${BLAST_VER}+-x64-linux.tar.gz && \
-  tar -xzf ncbi-blast-${BLAST_VER}+-x64-linux.tar.gz && \
-  rm -v ncbi-blast-${BLAST_VER}+-x64-linux.tar.gz
+    tar -xzf ncbi-blast-${BLAST_VER}+-x64-linux.tar.gz && \
+    rm -v ncbi-blast-${BLAST_VER}+-x64-linux.tar.gz
 
 # set PATH and locale settings for singularity compatibiliity, set amrfinder and manually-installed blast as higher priority in PATH
 ENV PATH="/amrfinder:/ncbi-blast-${BLAST_VER}+/bin:$PATH" \
     LC_ALL=C
+
+# download databases and index them
+# done in this manner to pin the database version instead of pulling the latest version with `amrfinder -u` 
+# softlink is required for `amrfinder -l` and typical `amrfinder` use cases to work properly
+RUN mkdir -p /amrfinder/data/${AMRFINDER_DB_VER} && \
+    wget -q -P /amrfinder/data/${AMRFINDER_DB_VER} ftp://ftp.ncbi.nlm.nih.gov/pathogen/Antimicrobial_resistance/AMRFinderPlus/database/3.11/${AMRFINDER_DB_VER}/* && \
+    amrfinder_index /amrfinder/data/${AMRFINDER_DB_VER} && \
+    ln -s /amrfinder/data/${AMRFINDER_DB_VER} /amrfinder/data/latest
 
 # set final working directory
 WORKDIR /data
