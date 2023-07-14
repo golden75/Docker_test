@@ -1,7 +1,7 @@
 # base image: Ubuntu
 FROM ubuntu:jammy as app
 
-ARG CUTADAPT_VER=""
+ARG CUTADAPT_VER="4.4"
 
 # File Author / Maintainer
 LABEL base.image="ubuntu:jammy"
