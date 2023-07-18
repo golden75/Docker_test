@@ -40,6 +40,16 @@ OR
 docker rmi image:tag
 ```  
 
+Remove dangling images  
+```
+docker image prune
+
+docker system prune  
+
+# additionally remove any stopped containers and unused images 
+docker system prune -a
+```
+
 Docker Hub  
 ```
 docker build --tag neranjan007/jq:1.6 jq/1.6/
@@ -47,3 +57,15 @@ Docker login
 docker push neranjan007/jq:1.6
 ```  
 
+When testing can use:  
+```
+docker build --tag mummer:test mummer/4.0.0/ --progress=plain 
+```
+
+`--progress=plain` prints  all STDOUT/STDERR is printed to screen can see every command being executed
+
+
+building specific targets:  
+```
+docker build --target app --tag hmmer:3.3.2 hmmer/3.3.2/
+```
