@@ -5,8 +5,6 @@ FROM ubuntu:jammy as app
 ARG MUMMER_VER="4.0.0"
 ARG MASH_VER="2.3"
 
-
-
 LABEL base.image="ubuntu:jammy"
 LABEL dockerfile.version="1"
 LABEL software="mummer"
@@ -50,6 +48,11 @@ RUN wget https://github.com/mummer4/mummer/releases/download/v${MUMMER_VER}rc1/m
     ldconfig; \
     cd ..; \
     mkdir /data
+
+# install ncbi datasets tool (pre-compiled binary); place in $PATH
+RUN wget https://ftp.ncbi.nlm.nih.gov/pub/datasets/command-line/LATEST/linux-amd64/datasets; \
+    chmod +x datasets; \
+    mv -v datasets /usr/local/bin
 
 # downloading mash binary
 RUN wget https://github.com/marbl/Mash/releases/download/v${MASH_VER}/mash-Linux64-v${MASH_VER}.tar; \
