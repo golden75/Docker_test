@@ -1,4 +1,53 @@
 # builder
+FROM ubuntu:jammy as builder
+
+# ARG sets environment variables during the build stage; they do not persist after the image is built
+ARG MUMMER_VER="4.0.0"
+ARG MASH_VER="2.3"
+
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    wget \
+    bzip2 \
+    ca-certificates \
+    build-essential \
+    unzip && \
+    apt-get autoclean && rm -rf /var/lib/apt/lists/*
+
+# install ncbi datasets tool (pre-compiled binary); place in $PATH
+RUN wget https://ftp.ncbi.nlm.nih.gov/pub/datasets/command-line/LATEST/linux-amd64/datasets; \
+    chmod +x datasets; \
+    mv -v datasets /usr/local/bin  
+
+# copy in list of NCBI accessions and species list
+COPY ncbi-assembly-accessions.txt /DB/ncbi-assembly-accessions.txt
+COPY ncbi-assembly-accessions-and-species.txt /DB/ncbi-assembly-accessions-and-species.txt
+
+RUN for ID in $(cat /DB/ncbi-assembly-accessions.txt); do \
+        SPECIES=$(grep "${ID}" /DB/ncbi-assembly-accessions-and-species.txt | cut -f 1); \
+        echo "downloading $ID, species "${SPECIES}", from NCBI..."; \
+        datasets download genome accession --filename ${ID}.zip ${ID}; \
+        unzip -q ${ID}.zip; \
+        rm ${ID}.zip; \
+        mv -v ncbi_dataset/data/${ID}/${ID}*.fna /DB/${ID}.${SPECIES}.fasta; \
+        rm -rf ncbi_dataset/ README.md; \
+    done; \
+    chmod 664 /DB/*
+
+# downloading mash binary
+RUN wget https://github.com/marbl/Mash/releases/download/v${MASH_VER}/mash-Linux64-v${MASH_VER}.tar; \
+    tar -xvf mash-Linux64-v${MASH_VER}.tar; \
+    rm -rf mash-Linux64-v${MASH_VER}.tar; \
+    cp /mash-Linux64-v2.3/mash /usr/local/bin/
+
+# download Lee's ani-m script
+RUN wget https://github.com/lskatz/ani-m/archive/refs/tags/v0.1.tar.gz; \
+    tar xzf v0.1.tar.gz; \
+    rm -v v0.1.tar.gz; \
+    cp /ani-m-0.1/ani-m.pl /usr/local/bin/
+
+
+
+# app layer
 FROM ubuntu:jammy as app
 
 # ARG sets environment variables during the build stage; they do not persist after the image is built
@@ -17,7 +66,6 @@ LABEL maintainer.email="neranjan007@gmail.com"
 
 RUN apt-get update && apt-get install -y --no-install-recommends \
     wget \
-    git \
     libncurses5-dev \
     libbz2-dev \
     liblzma-dev \
@@ -31,7 +79,6 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     gnuplot \
     ca-certificates \
     gawk \
-    curl \
     sed \
     build-essential \
     unzip && \
@@ -47,25 +94,13 @@ RUN wget https://github.com/mummer4/mummer/releases/download/v${MUMMER_VER}rc1/m
     make install; \
     ldconfig; \
     cd ..; \
-    mkdir /data
+    mkdir /data /DB
 
-# install ncbi datasets tool (pre-compiled binary); place in $PATH
-RUN wget https://ftp.ncbi.nlm.nih.gov/pub/datasets/command-line/LATEST/linux-amd64/datasets; \
-    chmod +x datasets; \
-    mv -v datasets /usr/local/bin
+COPY --from=builder /usr/local/bin/* /usr/local/bin/
 
-# downloading mash binary
-RUN wget https://github.com/marbl/Mash/releases/download/v${MASH_VER}/mash-Linux64-v${MASH_VER}.tar; \
-    tar -xvf mash-Linux64-v${MASH_VER}.tar; \
-    rm -rf mash-Linux64-v${MASH_VER}.tar
+COPY --from=builder /DB/* /DB/
 
-# download Lee's ani-m script
-RUN wget https://github.com/lskatz/ani-m/archive/refs/tags/v0.1.tar.gz; \
-    tar xzf v0.1.tar.gz; \
-    rm -v v0.1.tar.gz
-
-ENV PATH="${PATH}:/ani-m-0.1:/mash-Linux64-v${MASH_VER}" \
-    LC_ALL=C
+ENV LC_ALL=C
 
 # set working directory
 WORKDIR /data
