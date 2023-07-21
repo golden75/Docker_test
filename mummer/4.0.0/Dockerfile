@@ -1,17 +1,56 @@
-# builder
-FROM ubuntu:jammy as builder
+# app layer
+FROM ubuntu:jammy as app
 
 # ARG sets environment variables during the build stage; they do not persist after the image is built
 ARG MUMMER_VER="4.0.0"
 ARG MASH_VER="2.3"
 
+LABEL base.image="ubuntu:jammy"
+LABEL dockerfile.version="1"
+LABEL software="mummer"
+LABEL software.version=${MUMMER_VER}
+LABEL description="MUMmer is a versatile alignment tool for DNA and protein sequences."
+LABEL website="https://github.com/mummer4/mummer"
+LABEL license="https://github.com/mummer4/mummer/blob/master/LICENSE.md"
+LABEL maintainer="Neranjan Perera"
+LABEL maintainer.email="neranjan007@gmail.com"
+
+# to prevent tzdata from asking for a region during apt updates
+ARG DEBIAN_FRONTEND=noninteractive
+
 RUN apt-get update && apt-get install -y --no-install-recommends \
-    wget \
-    bzip2 \
-    ca-certificates \
-    build-essential \
-    unzip && \
-    apt-get autoclean && rm -rf /var/lib/apt/lists/*
+ wget \
+ git \
+ libncurses5-dev \
+ libbz2-dev \
+ liblzma-dev \
+ libcurl4-gnutls-dev \
+ zlib1g-dev \
+ libssl-dev \
+ gcc \
+ make \
+ perl \
+ bzip2 \
+ gnuplot \
+ ca-certificates \
+ gawk \
+ curl \
+ sed \
+ build-essential \
+ unzip && \
+ apt-get autoclean && rm -rf /var/lib/apt/lists/*
+
+# install mummer; make /data for use as working directory
+RUN wget https://github.com/mummer4/mummer/releases/download/v${MUMMER_VER}rc1/mummer-${MUMMER_VER}rc1.tar.gz; \
+    tar -xvf mummer-${MUMMER_VER}rc1.tar.gz; \
+    rm mummer-${MUMMER_VER}rc1.tar.gz; \
+    cd mummer-${MUMMER_VER}rc1; \
+    ./configure && \
+    make && \
+    make install; \
+    ldconfig; \
+    cd ..; \
+    mkdir /data /DB
 
 # install ncbi datasets tool (pre-compiled binary); place in $PATH
 RUN wget https://ftp.ncbi.nlm.nih.gov/pub/datasets/command-line/LATEST/linux-amd64/datasets; \
@@ -36,71 +75,16 @@ RUN for ID in $(cat /DB/ncbi-assembly-accessions.txt); do \
 # downloading mash binary
 RUN wget https://github.com/marbl/Mash/releases/download/v${MASH_VER}/mash-Linux64-v${MASH_VER}.tar; \
     tar -xvf mash-Linux64-v${MASH_VER}.tar; \
-    rm -rf mash-Linux64-v${MASH_VER}.tar; \
-    cp /mash-Linux64-v2.3/mash /usr/local/bin/
+    rm -rf mash-Linux64-v${MASH_VER}.tar
 
 # download Lee's ani-m script
 RUN wget https://github.com/lskatz/ani-m/archive/refs/tags/v0.1.tar.gz; \
     tar xzf v0.1.tar.gz; \
-    rm -v v0.1.tar.gz; \
-    cp /ani-m-0.1/ani-m.pl /usr/local/bin/
+    rm -v v0.1.tar.gz
 
-
-
-# app layer
-FROM ubuntu:jammy as app
-
-# ARG sets environment variables during the build stage; they do not persist after the image is built
-ARG MUMMER_VER="4.0.0"
-ARG MASH_VER="2.3"
-
-LABEL base.image="ubuntu:jammy"
-LABEL dockerfile.version="1"
-LABEL software="mummer"
-LABEL software.version=${MUMMER_VER}
-LABEL description="MUMmer is a versatile alignment tool for DNA and protein sequences."
-LABEL website="https://github.com/mummer4/mummer"
-LABEL license="https://github.com/mummer4/mummer/blob/master/LICENSE.md"
-LABEL maintainer="Neranjan Perera"
-LABEL maintainer.email="neranjan007@gmail.com"
-
-RUN apt-get update && apt-get install -y --no-install-recommends \
-    wget \
-    libncurses5-dev \
-    libbz2-dev \
-    liblzma-dev \
-    libcurl4-gnutls-dev \
-    zlib1g-dev \
-    libssl-dev \
-    gcc \
-    make \
-    perl \
-    bzip2 \
-    gnuplot \
-    ca-certificates \
-    gawk \
-    sed \
-    build-essential \
-    unzip && \
-    apt-get autoclean && rm -rf /var/lib/apt/lists/*
-
-# install mummer; make /data for use as working directory
-RUN wget https://github.com/mummer4/mummer/releases/download/v${MUMMER_VER}rc1/mummer-${MUMMER_VER}rc1.tar.gz; \
-    tar -xvf mummer-${MUMMER_VER}rc1.tar.gz; \
-    rm mummer-${MUMMER_VER}rc1.tar.gz; \
-    cd mummer-${MUMMER_VER}rc1; \
-    ./configure && \
-    make && \
-    make install; \
-    ldconfig; \
-    cd ..; \
-    mkdir /data /DB
-
-COPY --from=builder /usr/local/bin/* /usr/local/bin/
-
-COPY --from=builder /DB/* /DB/
-
-ENV LC_ALL=C
+# LC_ALL for singularity compatibility; set PATH
+ENV LC_ALL=C \
+    PATH="${PATH}:/ani-m-0.1:/mash-Linux64-v${MASH_VER}"
 
 # set working directory
 WORKDIR /data
