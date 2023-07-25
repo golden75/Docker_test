@@ -59,28 +59,28 @@ RUN wget https://ftp.ncbi.nlm.nih.gov/pub/datasets/command-line/LATEST/linux-amd
     mv -v datasets /usr/local/bin
 
 # copy in list of NCBI accessions and species list
-COPY RGDv2-NCBI-assembly-accessions.txt /RGDv2/RGDv2-NCBI-assembly-accessions.txt
-COPY RGDv2-NCBI-assembly-accessions-and-species.txt /RGDv2/RGDv2-NCBI-assembly-accessions-and-species.txt
+COPY ncbi-assembly-accessions.txt /DB/ncbi-assembly-accessions.txt
+COPY ncbi-assembly-accessions-and-species.txt /DB/ncbi-assembly-accessions-and-species.txt
 
 # download RGD genomes using NCBI datasets tools; cleanup unneccessary files; 
 # move and re-name assemblies to include Species in the filename
 # make fasta files readable to all users; create File Of FileNames for all 43 assemblies (to be used with fastANI)
-RUN for ID in $(cat /RGDv2/RGDv2-NCBI-assembly-accessions.txt); do \
-    SPECIES=$(grep "${ID}" /RGDv2/RGDv2-NCBI-assembly-accessions-and-species.txt | cut -f 1) && \
+RUN for ID in $(cat /DB/ncbi-assembly-accessions.txt); do \
+    SPECIES=$(grep "${ID}" /DB/ncbi-assembly-accessions-and-species.txt | cut -f 1) && \
     echo "downloading $ID, species "${SPECIES}", from NCBI..."; \
     datasets download genome accession --filename ${ID}.zip ${ID}; \
     unzip -q ${ID}.zip; \
     rm ${ID}.zip; \
-    mv -v ncbi_dataset/data/${ID}/${ID}*.fna /RGDv2/${ID}.${SPECIES}.fasta; \
+    mv -v ncbi_dataset/data/${ID}/${ID}*.fna /DB/${ID}.${SPECIES}.fasta; \
     rm -rf ncbi_dataset/; \
     rm README.md; \
     done && \
-    ls /RGDv2/*.fasta >/RGDv2/FOFN-RGDv2.txt && \
-    chmod 664 /RGDv2/*
+    ls /DB/*.fasta >/DB/Spyogens.txt && \
+    chmod 664 /DB/*
 
 # downloading mash binary
 RUN wget https://github.com/marbl/Mash/releases/download/v${MASH_VER}/mash-Linux64-v${MASH_VER}.tar && \
-    tar -xvf mash-Linux64-v${MASH_VER}.tar && \
+    tar -xvf mash-Linux64-v${MASH_VER}.tar --no-same-owner && \
     rm -rf mash-Linux64-v${MASH_VER}.tar
 
 # download Lee's ani-m script
@@ -118,6 +118,6 @@ RUN nucmer -h && nucmer --version && \
 # testing ani-m.pl (which runs 'dnadiff' and 'mash' under the hood)
 # comparing one of the reference genomes to another
 RUN ani-m.pl --symmetric --mash-filter 0.9 \
-    /RGDv2/GCA_014526935.1.Listeria_monocytogenes.fasta \
-    /RGDv2/GCA_001466295.1.Listeria_monocytogenes.fasta \
+    /DB/GCF_900475035.1.Streptococcus_pyogenes.fasta \
+    /DB/GCF_900475035.1.Streptococcus_pyogenes.fasta \
     | tee test-output-ani-m.tsv
