@@ -1,0 +1,46 @@
+FROM ubuntu:xenial
+
+ARG FASTQC_VER="0.11.9"
+ARG FASTQSCAN_VER="1.0.1"
+
+# metadata
+LABEL software.version="0.11.9"
+LABEL description="A quality control analysis tool for high throughput sequencing data and Output FASTQ summary statistics in JSON format"
+LABEL website="https://www.bioinformatics.babraham.ac.uk/projects/fastqc/"
+LABEL license="https://github.com/s-andrews/FastQC/blob/master/LICENSE.txt"
+LABEL website="https://github.com/rpetit3/fastq-scan"
+LABEL license="https://github.com/rpetit3/fastq-scan/blob/master/LICENSE"
+
+# install dependencies; cleanup apt garbage
+RUN apt-get update && apt-get install -y \
+    g++ \
+    make \
+    unzip \
+    wget \
+    ca-certificates \
+    perl \
+    jq \
+    default-jre && \
+    apt-get autoclean && rm -rf /var/lib/apt/lists/*
+
+# install fastqc
+RUN wget https://www.bioinformatics.babraham.ac.uk/projects/fastqc/fastqc_v${FASTQC_VER}.zip && \
+    unzip fastqc_v${FASTQC_VER}.zip && \
+    rm fastqc_v${FASTQC_VER}.zip && \
+    chmod +x FastQC/fastqc && \
+    mkdir /data
+
+
+# install and/or setup more things. Make /data for use as a working dir
+RUN wget https://github.com/rpetit3/fastq-scan/archive/refs/tags/v${FASTQSCAN_VER}.tar.gz && \
+    tar -xzf v${FASTQSCAN_VER}.tar.gz && \
+    rm v${FASTQSCAN_VER}.tar.gz && \
+    mv fastq-scan-${FASTQSCAN_VER} /fastq-scan && \
+    cd /fastq-scan && \
+    make 
+
+# set environmental variables e.g. $PATH and locale settings for singularity compatibility
+ENV PATH="$PATH:/FastQC/:/fastq-scan" \
+    LC_ALL=C
+
+WORKDIR /data
