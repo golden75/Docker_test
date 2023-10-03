@@ -10,8 +10,6 @@ ARG SAMTOOLS_VER=0.1.18
 
 LABEL base.image="ubuntu:focal"
 LABEL dockerfile.version="1"
-LABEL software="blast"
-LABEL software.version=${GBS_SBG_VER}
 LABEL software="SRST2"
 LABEL software.version="v0.2.0"
 LABEL description="Short Read Sequence Typing for Bacterial Pathogens GBS"
