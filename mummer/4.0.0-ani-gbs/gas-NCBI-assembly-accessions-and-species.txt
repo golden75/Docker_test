@@ -1,2 +1,3 @@
-Streptococcus_agalactiae    GCF_001552035.1
-Streptococcus_agalactiae    GCF_029625275.1
+Streptococcus_agalactiae  GCF_001552035.1
+Streptococcus_agalactiae  GCF_029625275.1
+Streptococcus_pyogenes	GCF_900475035.1
