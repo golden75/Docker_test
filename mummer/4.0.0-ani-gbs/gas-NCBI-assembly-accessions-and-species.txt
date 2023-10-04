@@ -1,0 +1,2 @@
+Streptococcus_agalactiae    GCF_001552035.1
+Streptococcus_agalactiae    GCF_029625275.1
